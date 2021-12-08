@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Particulate Matter by County</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
+    <!--import map stylesheet-->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
+    <!--import basic map javascript elements-->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+    <!--styling-->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        h2 {
+            margin: 10px;
+            font-size: 18px;
+        }
+
+        h3 {
+            margin: 10px;
+        }
+
+        p {
+            margin: 10px;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #sidebar {
+            position: absolute;
+            width: 15%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        #features {
+            top: 0;
+            height: 120px;
+            margin-top: 20px;
+            width: 90%;
+        }
+
+        #legend {
+            padding: 10px;
+            line-height: 18px;
+            height: 210px;
+            margin-bottom: 40px;
+            width: 90%;
+        }
+
+        .legend-key {
+            display: inline-block;
+            border-radius: 20%;
+            width: 10px;
+            height: 10px;
+            margin-right: 5px;
+        }
+
+        #description {
+            margin-bottom: 40px;
+        }
+
+        #acknowledgements {
+            font-size: 10px;
+        }
+
+        .mapboxgl-canvas-container.mapboxgl-interactive,
+        .mapboxgl-ctrl-group button.mapboxgl-ctrl-compass {
+            cursor: unset;
+        }
+    </style>
+</head>
+
+<body>
+    <!--import geocoder API-->
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css">
+
+    <!--content of webpage-->
+    <div id="map"></div>
+    <div id="sidebar">
+        <div class="map-ui" id="features">
+            <h2>Particulate Matter by County</h2>
+            <div id="print-value">
+                <p>Hover over a county to see data</p>
+            </div>
+        </div>
+        <div class="map-ui" id="legend"></div>
+        <p id="description">
+            Note: The National Ambient Air Quality Standards (NAAQS) sets standards for acceptable levels of air pollution. For PM<sub>2.5</sub>, the NAAQS-set primary (i.e. health-based)
+            standard is a maxmimum of 12.0 μg/m<sup>3</sup>.
+        </p>
+        <p id="acknowledgements">
+            Acknowledgements:
+            <br>
+            Air quality data obtained from EPA: <a href="https://www.epa.gov/air-trends/air-quality-cities-and-counties">"Air Quality - Cities and Counties 2020"</a>
+            <br>
+            NAAQS information obtained from EPA: <a href="https://www.epa.gov/pm-pollution/national-ambient-air-quality-standards-naaqs-pm">"National Ambient Air Quality Standards (NAAQS) for PM</a>
+            <br>
+            US counties obtained from US Census Bureau: <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html">"Cartographic Boundary Files"</a>
+        </p>
+    </div>
+
+    <!--map-related scripts-->
+    <script>
+        // this is my access token. there are many like it, but this one is mine.
+        mapboxgl.accessToken = 'pk.eyJ1IjoibGlhbWdlYXJ5dXciLCJhIjoiY2t2YmRzOTd1Mnd2bTJubm5pZjZ2dWN6NCJ9.MSvwXgu6CcpGE5Zw4ukudw';
+        
+        // set map
+        const map = new mapboxgl.Map({
+            container: 'map', // container ID
+            style: 'mapbox://styles/mapbox/light-v10', // style URL
+            zoom: 4, // starting zoom
+            center: [-95.71, 37.90] // starting center [long, lat]
+        });
+
+        // set geocoder that can search for locations in the US and Puerto Rico
+        map.addControl(
+            new MapboxGeocoder({
+                accessToken: mapboxgl.accessToken,
+
+                // limit search results to the united states and puerto rico, as that's what i have data for.
+                // country codes are from ISO 3166
+                countries: 'us, pr',
+
+                mapboxgl: mapboxgl,
+            })
+        )
+
+        async function geojsonFetch() {
+            let response = await fetch('assets/airpollution2020-counties.geojson');
+            let airData = await response.json();
+
+            map.on('load', function loadingData() {
+                // add layer
+                map.addSource('airData', {
+                    type: 'geojson',
+                    data: airData
+                });
+
+                map.addLayer({
+                    'id': 'airData-layer',
+                    'type': 'fill',
+                    'source': 'airData',
+                    'paint': {
+                        'fill-color': [
+                            'step',
+                            ['get', 'PM25WtdAM'],
+                            '#A0A0A0',  // when PM25WtdAM has no data or insufficient data, the
+                            0.1,        // geojson has the data set to 0.0
+                            '#FFF9C0',  // this isn't a perfect solution but no county actually
+                            2.0,        // has 0.0 as its original value (because that's not
+                            '#EDB590',  // possible)
+                            4.0,
+                            '#E08062',
+                            6.0,
+                            '#C6533F',
+                            8.0,
+                            '#A21E1E',
+                            10.0,
+                            '#830D24',
+                            12.0,
+                            "#6F002D"
+                        ],
+                        'fill-outline-color': '#777777',
+                        'fill-opacity': 0.7,
+                    }
+                });
+
+                // set list of values that will appear in legend
+                const layers = [
+                    'No or Insufficient Data',
+                    '0.0-1.9',  // this technically isn't accurate, but there isn't a county with
+                    '2.0-3.9',  // 0.0 mcg/m3 of PM2.5, so i went with equal breaks in the legend
+                    '4.0-5.9',  // instead of starting at 0.1 mcg/m3
+                    '6.0-7.9',
+                    '8.0-9.9',
+                    '10.0-11.9',
+                    '12.0+'
+                ];
+
+                // set list of colors that will appear in legend
+                const colors = [
+                    '#A0A0A0',
+                    '#FFF9C0',
+                    '#EDB590',
+                    '#E08062',
+                    '#C6533F',
+                    '#A21E1E',
+                    '#830D24',
+                    '#6F002D'
+                ];
+
+                // set legend
+                const legend = document.getElementById('legend');
+                legend.innerHTML = "<b>Weighted Annual Mean Concentration of Particulate Matter, 2.5μm or smaller in diameter (μg/m<sup>3</sup>)</b><br><br>";
+
+                // adds the colored square next to each legend entry, then the text for each legend entry
+                layers.forEach((layer, i) => {
+                    const color = colors[i];
+                    const item = document.createElement('div');
+                    const key = document.createElement('span');
+                    key.className = 'legend-key';
+                    key.style.backgroundColor = color;
+
+                    const value = document.createElement('span');
+                    value.innerHTML = `${layer}`;
+                    item.appendChild(key);
+                    item.appendChild(value);
+                    legend.appendChild(item);
+                });
+
+                // allow for text to change as mouse hovers over a county
+                // if the mouse is not hovering over a county, the placeholder text "Hover over a county to see data" will appear instead
+                map.on('mousemove', ({point}) => {
+                    const county = map.queryRenderedFeatures(point, {
+                        layers: ['airData-layer']
+                    });
+                    document.getElementById('print-value').innerHTML = county.length ?
+                        `<h3>${county[0].properties.NAME} County</h3><p><strong><em>${county[0].properties.PM25WtdAM}</strong> PM<sub>2.5</sub> μg/m<sup>3</sup></em></p>` :
+                        `<p>Hover over a county to see data</p>`;
+                });
+            });
+        };
+
+        geojsonFetch();
+    </script>
+</body>
+</html>
