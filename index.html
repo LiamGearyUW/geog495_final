@@ -49,14 +49,16 @@
             top: 0;
             height: 120px;
             margin-top: 20px;
-            width: 90%;
+            width: 100%;
+            border-bottom: 1px solid rgba(139, 139, 139, 0.5);
         }
 
         #legend {
-            padding: 10px;
+            margin-top: 10px;
+            padding-left: 10px;
+            padding-bottom: 15px;
             line-height: 18px;
-            height: 210px;
-            margin-bottom: 40px;
+            height: 250px;
             width: 90%;
         }
 
@@ -69,6 +71,7 @@
         }
 
         #description {
+            margin-top: 0px;
             margin-bottom: 40px;
         }
 
@@ -91,13 +94,13 @@
     <!--content of webpage-->
     <div id="map"></div>
     <div id="sidebar">
-        <div class="map-ui" id="features">
+        <div id="features">
             <h2>Particulate Matter by County</h2>
             <div id="print-value">
                 <p>Hover over a county to see data</p>
             </div>
         </div>
-        <div class="map-ui" id="legend"></div>
+        <div id="legend"></div>
         <p id="description">
             Note: The National Ambient Air Quality Standards (NAAQS) sets standards for acceptable levels of air pollution. For PM<sub>2.5</sub>, the NAAQS-set primary (i.e. health-based)
             standard is a maxmimum of 12.0 μg/m<sup>3</sup>.
